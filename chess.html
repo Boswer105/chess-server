@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Échecs — Face à Face</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root{--light:#f0d9b5;--dark:#b58863;--highlight:#cdd16a;--selected:#7fc97f;--check:#e74c3c;--bg:#1a1008;--panel:#231508;--gold:#c9a227;--cream:#f5efe0;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);font-family:'Crimson Pro',Georgia,serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 50% 0%,#3d1f00 0%,transparent 60%),radial-gradient(ellipse at 50% 100%,#1a0d00 0%,transparent 60%);pointer-events:none;}
+  h1{font-family:'Playfair Display',serif;font-size:clamp(1.8rem,4vw,3rem);font-weight:900;color:var(--gold);letter-spacing:0.12em;text-align:center;margin-bottom:4px;text-shadow:0 2px 20px rgba(201,162,39,0.4);}
+  .subtitle{font-style:italic;color:rgba(245,239,224,0.45);font-size:1rem;letter-spacing:0.2em;margin-bottom:16px;text-align:center;}
+
+  /* MODE SELECTOR */
+  .mode-bar{display:flex;gap:8px;margin-bottom:16px;background:rgba(0,0,0,0.3);border:1px solid rgba(201,162,39,0.15);border-radius:6px;padding:5px;}
+  .mode-btn{flex:1;background:transparent;border:1px solid transparent;color:rgba(245,239,224,0.45);font-family:'Playfair Display',serif;font-size:0.8rem;letter-spacing:0.1em;padding:7px 12px;border-radius:4px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;}
+  .mode-btn:hover{color:var(--cream);}
+  .mode-btn.active{background:rgba(201,162,39,0.15);border-color:rgba(201,162,39,0.4);color:var(--gold);}
+  /* color-pick for vs-bot */
+  .color-pick{display:none;gap:8px;margin-bottom:12px;justify-content:center;}
+  .color-pick.visible{display:flex;}
+  .cp-btn{background:transparent;border:1px solid rgba(201,162,39,0.3);color:rgba(245,239,224,0.6);font-family:'Playfair Display',serif;font-size:0.78rem;letter-spacing:0.08em;padding:5px 14px;border-radius:3px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;}
+  .cp-btn:hover,.cp-btn.active{background:rgba(201,162,39,0.15);border-color:var(--gold);color:var(--gold);}
+  /* bot-thinking banner */
+  #bot-thinking{display:none;font-size:0.8rem;color:rgba(201,162,39,0.6);letter-spacing:0.1em;text-align:center;margin-bottom:6px;font-style:italic;}
+  #bot-thinking.on{display:block;}
+
+  .game-wrap{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;justify-content:center;}
+  .side-panel{background:var(--panel);border:1px solid rgba(201,162,39,0.2);border-radius:4px;padding:16px;width:190px;min-height:400px;display:flex;flex-direction:column;gap:10px;}
+  .panel-title{font-family:'Playfair Display',serif;color:var(--gold);font-size:0.85rem;letter-spacing:0.15em;text-transform:uppercase;border-bottom:1px solid rgba(201,162,39,0.2);padding-bottom:8px;}
+  .moves-list{flex:1;overflow-y:auto;font-size:0.88rem;color:rgba(245,239,224,0.7);line-height:1.9;}
+  .moves-list::-webkit-scrollbar{width:3px;}
+  .moves-list::-webkit-scrollbar-thumb{background:rgba(201,162,39,0.3);border-radius:2px;}
+  .move-row{display:flex;gap:6px;}
+  .move-num{color:rgba(201,162,39,0.5);min-width:22px;}
+  .move-w,.move-b{flex:1;}
+  .captured-pieces{display:flex;flex-wrap:wrap;gap:2px;min-height:36px;}
+  .cap-piece{font-size:1.3rem;opacity:0.7;}
+  .status-bar{background:var(--panel);border:1px solid rgba(201,162,39,0.2);border-radius:4px;padding:10px 20px;color:var(--cream);font-size:1.05rem;text-align:center;letter-spacing:0.05em;margin-bottom:10px;min-width:300px;transition:all 0.3s;}
+  .status-bar.check{border-color:var(--check);color:#ff8a80;}
+  .status-bar.mate{border-color:var(--gold);color:var(--gold);font-weight:700;font-size:1.2rem;}
+  .board-container{position:relative;display:flex;flex-direction:column;align-items:center;}
+  #board-wrap{position:relative;}
+  .board-frame{padding:28px;background:linear-gradient(135deg,#3d1f00,#2a1200,#3d1f00);border:2px solid rgba(201,162,39,0.4);border-radius:6px;box-shadow:0 20px 60px rgba(0,0,0,0.8),inset 0 1px 0 rgba(201,162,39,0.2);}
+  .coord{font-family:'Playfair Display',serif;font-size:0.7rem;color:rgba(201,162,39,0.6);display:flex;align-items:center;justify-content:center;user-select:none;}
+  .coord-rank{width:22px;height:60px;}
+  .coord-file{width:60px;height:22px;}
+  .sq{width:60px;height:60px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:background 0.15s;font-size:2.4rem;user-select:none;}
+  .sq.light{background:var(--light);}
+  .sq.dark{background:var(--dark);}
+  .sq.selected{background:var(--selected)!important;}
+  .sq.movable::after{content:'';width:22px;height:22px;background:rgba(0,0,0,0.22);border-radius:50%;position:absolute;}
+  .sq.capture-hint{background:rgba(231,76,60,0.4)!important;}
+  .sq.last-move{background:var(--highlight)!important;}
+  .sq.king-check{background:var(--check)!important;}
+  .sq.hint-best{background:rgba(79,195,247,0.6)!important;box-shadow:inset 0 0 0 3px rgba(79,195,247,0.95);}
+  .sq.bot-move{background:rgba(255,183,77,0.5)!important;box-shadow:inset 0 0 0 3px rgba(255,183,77,0.9);}
+  .sq .piece{pointer-events:none;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.5));transition:transform 0.1s;position:relative;z-index:2;}
+  .sq:hover .piece{transform:scale(1.08);}
+  #board-wrap.flipped .sq .piece{transform:rotate(180deg);}
+  #board-wrap.flipped .sq:hover .piece{transform:rotate(180deg) scale(1.08);}
+  #board-wrap.flipped .coord-rank{transform:rotate(180deg);}
+  #board-wrap.flipped .coord-file{transform:rotate(180deg);}
+  .btn{background:transparent;border:1px solid rgba(201,162,39,0.4);color:var(--gold);font-family:'Playfair Display',serif;font-size:0.82rem;letter-spacing:0.12em;padding:8px 18px;border-radius:3px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;width:100%;}
+  .btn:hover{background:rgba(201,162,39,0.12);border-color:var(--gold);}
+  .btn-hint{background:linear-gradient(135deg,rgba(79,195,247,0.1),rgba(129,199,132,0.1));border-color:rgba(79,195,247,0.45);color:#4fc3f7;}
+  .btn-hint:hover{background:linear-gradient(135deg,rgba(79,195,247,0.2),rgba(129,199,132,0.2));border-color:#4fc3f7;}
+  .btn:disabled,.btn-hint:disabled{opacity:0.35;cursor:not-allowed;pointer-events:none;}
+  .turn-indicator{display:flex;align-items:center;gap:8px;font-size:0.85rem;color:rgba(245,239,224,0.6);}
+  .turn-dot{width:12px;height:12px;border-radius:50%;border:1px solid rgba(255,255,255,0.3);transition:background 0.3s;}
+  .turn-dot.white{background:#f0d9b5;}
+  .turn-dot.black{background:#1a1008;}
+  #sf-status{display:flex;align-items:center;gap:6px;font-size:0.74rem;color:rgba(245,239,224,0.45);}
+  #sf-dot{width:7px;height:7px;border-radius:50%;background:#555;flex-shrink:0;transition:background 0.4s;}
+  #sf-dot.loading{background:#f0a500;animation:pulse 1s infinite;}
+  #sf-dot.ready{background:#66bb6a;}
+  #sf-dot.error{background:#e74c3c;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+  .level-wrap{display:flex;flex-direction:column;gap:4px;}
+  .level-label{font-size:0.74rem;color:rgba(245,239,224,0.45);display:flex;justify-content:space-between;}
+  .level-label span{color:var(--gold);font-weight:700;}
+  input[type=range]{width:100%;accent-color:var(--gold);cursor:pointer;}
+  #hint-panel{display:none;width:100%;max-width:540px;background:var(--panel);border:1px solid rgba(79,195,247,0.3);border-radius:6px;padding:16px 20px;margin-top:12px;animation:fadeUp 0.3s ease;}
+  #hint-panel.visible{display:block;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+  .hint-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-family:'Playfair Display',serif;font-size:0.85rem;color:#4fc3f7;letter-spacing:0.15em;text-transform:uppercase;}
+  .hint-engine-tag{font-size:0.68rem;color:rgba(79,195,247,0.5);font-style:normal;letter-spacing:0.08em;font-family:'Crimson Pro',serif;}
+  .hint-close{margin-left:auto;background:none;border:none;color:rgba(245,239,224,0.3);cursor:pointer;font-size:1rem;transition:color 0.2s;padding:0;}
+  .hint-close:hover{color:var(--cream);}
+  .hint-spinner{width:14px;height:14px;border:2px solid rgba(79,195,247,0.25);border-top-color:#4fc3f7;border-radius:50%;display:none;animation:spin 0.8s linear infinite;}
+  .hint-spinner.on{display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .hint-moves{display:flex;flex-direction:column;gap:7px;margin-bottom:12px;}
+  .hint-row{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:4px;background:rgba(255,255,255,0.04);border-left:3px solid #4fc3f7;font-size:0.9rem;color:var(--cream);}
+  .hint-badge{font-size:0.68rem;font-family:'Playfair Display',serif;letter-spacing:0.1em;text-transform:uppercase;padding:2px 6px;border-radius:2px;background:rgba(79,195,247,0.18);color:#4fc3f7;}
+  .hint-score{font-size:0.75rem;color:rgba(245,239,224,0.35);margin-left:auto;white-space:nowrap;}
+  .hint-explanation{font-size:0.9rem;color:rgba(245,239,224,0.72);line-height:1.65;font-style:italic;border-top:1px solid rgba(79,195,247,0.15);padding-top:10px;min-height:20px;}
+  .promo-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:100;align-items:center;justify-content:center;}
+  .promo-modal.open{display:flex;}
+  .promo-box{background:var(--panel);border:1px solid rgba(201,162,39,0.4);border-radius:6px;padding:24px;text-align:center;}
+  .promo-title{font-family:'Playfair Display',serif;color:var(--gold);margin-bottom:16px;font-size:1.1rem;}
+  .promo-choices{display:flex;gap:12px;justify-content:center;}
+  .promo-btn{font-size:2.8rem;background:none;border:1px solid rgba(201,162,39,0.3);border-radius:4px;padding:8px 12px;cursor:pointer;transition:background 0.2s;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));}
+  .promo-btn:hover{background:rgba(201,162,39,0.15);}
+  /* Barre d avantage */
+  #eval-bar-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;margin-right:6px;}
+  #eval-bar{width:18px;height:480px;background:#1a1008;border:1px solid rgba(201,162,39,0.2);border-radius:3px;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+  #eval-white{background:#f0d9b5;transition:height 0.5s cubic-bezier(0.4,0,0.2,1);}
+  #eval-black{background:#1a1008;flex:1;}
+  #eval-score{font-size:0.68rem;color:rgba(245,239,224,0.5);font-family:'Playfair Display',serif;text-align:center;min-width:18px;}
+  #btn-eval{background:transparent;border:1px solid rgba(201,162,39,0.25);color:rgba(201,162,39,0.5);font-size:0.6rem;font-family:'Playfair Display',serif;padding:3px 5px;border-radius:2px;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;transition:all 0.2s;margin-top:2px;}
+  #btn-eval:hover{border-color:var(--gold);color:var(--gold);}
+  #btn-eval.active{border-color:var(--gold);color:var(--gold);background:rgba(201,162,39,0.1);}
+  @media(max-width:700px){.side-panel{display:none;}.sq{width:44px;height:44px;font-size:1.8rem;}.coord-rank{width:16px;height:44px;}.coord-file{width:44px;height:16px;}.board-frame{padding:18px;}#eval-bar-wrap{display:none;}}
+</style>
+</head>
+<body>
+<h1>FACE À FACE</h1>
+<p class="subtitle">échecs — deux joueurs, un seul échiquier</p>
+
+<!-- Mode selector -->
+<div class="mode-bar">
+  <button class="mode-btn active" id="mode-2p"  onclick="setMode('2p')">👥 2 Joueurs</button>
+  <button class="mode-btn"        id="mode-bot" onclick="setMode('bot')">🤖 vs Stockfish</button>
+</div>
+<!-- Color picker (vs bot only) -->
+<div class="color-pick" id="color-pick">
+  <span style="font-size:0.78rem;color:rgba(245,239,224,0.4);letter-spacing:0.1em;align-self:center;">Je joue :</span>
+  <button class="cp-btn active" id="cp-white" onclick="setPlayerColor('w')">♔ Blancs</button>
+  <button class="cp-btn"        id="cp-black" onclick="setPlayerColor('b')">♚ Noirs</button>
+</div>
+
+<div id="bot-thinking">⏳ Stockfish réfléchit…</div>
+<div class="status-bar" id="status">Tour des Blancs ♙</div>
+
+<div class="game-wrap">
+  <div class="side-panel">
+    <div class="panel-title">Partie</div>
+    <div class="turn-indicator"><div class="turn-dot white" id="turn-dot"></div><span id="turn-text">Tour des Blancs</span></div>
+    <div class="moves-list" id="moves-list"></div>
+    <button class="btn" onclick="newGame()">Nouvelle partie</button>
+    <button class="btn" id="btn-flip-mode" onclick="toggleFlipMode()" style="font-size:0.78rem;opacity:0.85;">🔄 Retournement : ON</button>
+    <button class="btn" onclick="undoMove()" style="font-size:0.78rem;">↩ Annuler</button>
+  </div>
+
+  <!-- Barre d avantage -->
+  <div id="eval-bar-wrap">
+    <div id="eval-score">=</div>
+    <div id="eval-bar"><div id="eval-white" style="height:50%"></div><div id="eval-black"></div></div>
+    <button id="btn-eval" onclick="toggleEvalBar()" title="Activer/désactiver la barre d'avantage">📊</button>
+  </div>
+  <div class="board-container">
+    <div id="board-wrap"><div class="board-frame"><div id="board-with-coords"></div></div></div>
+    <div id="hint-panel">
+      <div class="hint-header">
+        <span>✦ Conseil</span>
+        <span class="hint-engine-tag" id="engine-tag">—</span>
+        <div class="hint-spinner" id="hint-spinner"></div>
+        <button class="hint-close" onclick="closeHint()">✕</button>
+      </div>
+      <div class="hint-moves" id="hint-moves"></div>
+      <div class="hint-explanation" id="hint-explanation"></div>
+    </div>
+  </div>
+
+  <div class="side-panel">
+    <div class="panel-title">Assistant</div>
+    <div id="sf-status"><div id="sf-dot" class="loading"></div><span id="sf-label">Chargement…</span></div>
+    <div class="level-wrap">
+      <div class="level-label">Niveau <span id="lvl-val">10</span> / 20</div>
+      <input type="range" id="sf-level" min="1" max="20" value="10" oninput="document.getElementById('lvl-val').textContent=this.value">
+    </div>
+    <!-- Hint button: visible in 2p mode -->
+    <button class="btn btn-hint" id="btn-hint" onclick="requestHint()" disabled>✦ Conseil</button>
+    <div style="flex:1"></div>
+    <div class="panel-title">Capturées</div>
+    <div style="color:rgba(245,239,224,0.5);font-size:0.75rem;">Blancs ont pris</div>
+    <div class="captured-pieces" id="cap-white"></div>
+    <div style="color:rgba(245,239,224,0.5);font-size:0.75rem;margin-top:6px;">Noirs ont pris</div>
+    <div class="captured-pieces" id="cap-black"></div>
+  </div>
+</div>
+
+<div class="promo-modal" id="promo-modal">
+  <div class="promo-box">
+    <div class="promo-title">Promotion du pion</div>
+    <div class="promo-choices" id="promo-choices"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CHESS LOGIC
+// ═══════════════════════════════════════════════
+const W='w',B='b';
+const PIECES={wK:'♔',wQ:'♕',wR:'♖',wB:'♗',wN:'♘',wP:'♙',bK:'♚',bQ:'♛',bR:'♜',bB:'♝',bN:'♞',bP:'♟'};
+const FILES='abcdefgh';
+const PVAL={P:100,N:320,B:330,R:500,Q:900,K:20000};
+
+function initBoard(){return[['bR','bN','bB','bQ','bK','bB','bN','bR'],['bP','bP','bP','bP','bP','bP','bP','bP'],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],['wP','wP','wP','wP','wP','wP','wP','wP'],['wR','wN','wB','wQ','wK','wB','wN','wR']];}
+
+// ── Game state ──
+let board,turn,selected,legalMoves,lastMove,gameOver,castlingRights,enPassantTarget,
+    capturedByWhite,capturedByBlack,moveHistory,boardHistory,
+    isFlipped=false,hintSq=[],autoFlip=true,botSq=[];
+let halfMoveClock=0;   // règle des 50 coups
+let positionCount={};  // répétition de positions
+
+// ── Mode state ──
+let gameMode='2p';      // '2p' | 'bot'
+let playerColor=W;      // color the human plays in bot mode
+let botThinking=false;
+let evalBarOn=true;     // barre d'avantage activée
+
+function toggleEvalBar(){
+  evalBarOn=!evalBarOn;
+  const btn=document.getElementById('btn-eval');
+  const bar=document.getElementById('eval-bar-wrap');
+  btn.classList.toggle('active',evalBarOn);
+  document.getElementById('eval-bar').style.visibility=evalBarOn?'visible':'hidden';
+  document.getElementById('eval-score').style.visibility=evalBarOn?'visible':'hidden';
+  if(evalBarOn) updateEvalBar();
+}
+
+function updateEvalBar(){
+  if(!evalBarOn)return;
+  const scoreEl=document.getElementById('eval-score');
+  const whiteEl=document.getElementById('eval-white');
+  // Calcul rapide du matériel
+  let mat=0;
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const p=board[r][c];if(!p)continue;
+    const v=PVAL[tp(p)]||0;
+    mat+=cl(p)===W?v:-v;
+  }
+  // Convertir en pourcentage (100cp = ~1 pion, cap à ±800cp)
+  const capped=Math.max(-800,Math.min(800,mat));
+  const pct=50+capped/16; // 0% = tout noir, 100% = tout blanc
+  whiteEl.style.height=(100-pct)+'%'; // blanc en bas = height depuis le bas
+  // Affichage score
+  if(gameOver){scoreEl.textContent='fin';}
+  else if(Math.abs(mat)<50){scoreEl.textContent='=';}
+  else{const pawns=(Math.abs(mat)/100).toFixed(1);scoreEl.textContent=(mat>0?'+':'-')+pawns;}
+}
+
+// ─────────────────────────────────────────────
+function setMode(m){
+  gameMode=m;
+  document.getElementById('mode-2p').classList.toggle('active',m==='2p');
+  document.getElementById('mode-bot').classList.toggle('active',m==='bot');
+  document.getElementById('color-pick').classList.toggle('visible',m==='bot');
+  document.getElementById('btn-hint').style.display=m==='2p'?'':'none';
+  document.getElementById('btn-flip-mode').style.display=m==='bot'?'none':'';
+  if(m==='bot'){autoFlip=false;const w=document.getElementById('board-wrap');w.style.transform='';w.classList.remove('flipped');isFlipped=false;}
+  newGame();
+}
+function setPlayerColor(c){
+  playerColor=c;
+  document.getElementById('cp-white').classList.toggle('active',c===W);
+  document.getElementById('cp-black').classList.toggle('active',c===B);
+  newGame();
+}
+
+function toggleFlipMode(){
+  autoFlip=!autoFlip;
+  const btn=document.getElementById('btn-flip-mode');
+  btn.textContent='🔄 Retournement : '+(autoFlip?'ON':'OFF');
+  btn.style.opacity=autoFlip?'0.85':'0.5';
+  if(!autoFlip&&isFlipped){isFlipped=false;const w=document.getElementById('board-wrap');w.style.transition='transform 0.65s cubic-bezier(0.4,0,0.2,1)';w.style.transform='rotate(0deg)';w.classList.remove('flipped');}
+}
+
+function newGame(){
+  board=initBoard();turn=W;selected=null;legalMoves=[];lastMove=null;gameOver=false;
+  castlingRights={wK:true,wQ:true,bK:true,bQ:true};enPassantTarget=null;
+  capturedByWhite=[];capturedByBlack=[];moveHistory=[];boardHistory=[];halfMoveClock=0;positionCount={};
+  isFlipped=false;hintSq=[];botSq=[];botThinking=false;
+  const w=document.getElementById('board-wrap');
+  w.style.transform='';w.classList.remove('flipped');
+  // In bot mode, orient board so player is at bottom
+  if(gameMode==='bot'&&playerColor===B){
+    isFlipped=true;w.style.transform='rotate(180deg)';w.classList.add('flipped');
+  }
+  closeHint();renderBoard();updateStatus();renderMoves();renderCaptured();
+  document.getElementById('bot-thinking').classList.remove('on');
+  // If bot plays first (player chose black)
+  if(gameMode==='bot'&&playerColor===B) scheduleBotMove();
+}
+
+// ─────────────────────────────────────────────
+const cl=p=>p?p[0]:null,tp=p=>p?p[1]:null,op=c=>c===W?B:W,ib=(r,c)=>r>=0&&r<8&&c>=0&&c<8;
+const toAlg=(r,c)=>FILES[c]+(8-r);
+
+function rawMoves(b,r,c,ep,cr){
+  const p=b[r][c];if(!p)return[];const cv=cl(p),t=tp(p);const mv=[];
+  const add=(nr,nc,sp)=>{if(!ib(nr,nc))return;const tg=b[nr][nc];if(tg&&cl(tg)===cv)return;mv.push({r:nr,c:nc,special:sp||null});};
+  if(t==='P'){const d=cv===W?-1:1,sr=cv===W?6:1,pr=cv===W?0:7;
+    if(ib(r+d,c)&&!b[r+d][c]){mv.push({r:r+d,c,special:(r+d===pr)?'promo':null});if(r===sr&&!b[r+2*d][c])mv.push({r:r+2*d,c,special:'double'});}
+    for(const dc of[-1,1]){const nr=r+d,nc=c+dc;if(!ib(nr,nc))continue;if(b[nr][nc]&&cl(b[nr][nc])!==cv)mv.push({r:nr,c:nc,special:(nr===pr)?'promo':null});if(ep&&nr===ep.r&&nc===ep.c)mv.push({r:nr,c:nc,special:'ep'});}}
+  if(t==='N')for(const[dr,dc]of[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]])add(r+dr,c+dc);
+  if(t==='B'||t==='Q')for(const[dr,dc]of[[-1,-1],[-1,1],[1,-1],[1,1]]){let nr=r+dr,nc=c+dc;while(ib(nr,nc)){if(b[nr][nc]){if(cl(b[nr][nc])!==cv)add(nr,nc);break;}add(nr,nc);nr+=dr;nc+=dc;}}
+  if(t==='R'||t==='Q')for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){let nr=r+dr,nc=c+dc;while(ib(nr,nc)){if(b[nr][nc]){if(cl(b[nr][nc])!==cv)add(nr,nc);break;}add(nr,nc);nr+=dr;nc+=dc;}}
+  if(t==='K'){for(const[dr,dc]of[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]])add(r+dr,c+dc);
+    if(cr){if(cv===W&&cr.wK&&r===7&&c===4&&!b[7][5]&&!b[7][6])mv.push({r:7,c:6,special:'castle-K'});if(cv===W&&cr.wQ&&r===7&&c===4&&!b[7][3]&&!b[7][2]&&!b[7][1])mv.push({r:7,c:2,special:'castle-Q'});if(cv===B&&cr.bK&&r===0&&c===4&&!b[0][5]&&!b[0][6])mv.push({r:0,c:6,special:'castle-K'});if(cv===B&&cr.bQ&&r===0&&c===4&&!b[0][3]&&!b[0][2]&&!b[0][1])mv.push({r:0,c:2,special:'castle-Q'});}}
+  return mv;
+}
+function inCheck(b,cv){let kr=-1,kc=-1;for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(b[r][c]===cv+'K'){kr=r;kc=c;}if(kr===-1)return false;for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(cl(b[r][c])===op(cv)&&rawMoves(b,r,c,null,null).some(m=>m.r===kr&&m.c===kc))return true;return false;}
+function applyMv(b,fr,to,sp,pt){const nb=b.map(r=>[...r]);const p=nb[fr.r][fr.c];const cv=cl(p);nb[to.r][to.c]=p;nb[fr.r][fr.c]=null;if(sp==='ep')nb[fr.r][to.c]=null;if(sp==='castle-K'){nb[to.r][5]=nb[to.r][7];nb[to.r][7]=null;}if(sp==='castle-Q'){nb[to.r][3]=nb[to.r][0];nb[to.r][0]=null;}if(sp==='promo')nb[to.r][to.c]=cv+(pt||'Q');return nb;}
+function legalAt(b,r,c,ep,cr){const p=b[r][c];if(!p)return[];const cv=cl(p);return rawMoves(b,r,c,ep,cr).filter(m=>{const nb=applyMv(b,{r,c},m,m.special);if(m.special&&m.special.startsWith('castle')){const mc=m.c===6?5:3;if(inCheck(b,cv)||inCheck(applyMv(b,{r,c},{r,c:mc},null),cv))return false;}return!inCheck(nb,cv);});}
+function allMoves(b,cv,ep,cr){const all=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(cl(b[r][c])===cv)legalAt(b,r,c,ep,cr).forEach(m=>all.push({from:{r,c},to:m}));return all;}
+function noteMove(b,fr,to,m,pt){const p=b[fr.r][fr.c],t=tp(p);if(m.special&&m.special.startsWith('castle'))return m.special==='castle-K'?'O-O':'O-O-O';let s=t!=='P'?t:'';if(b[to.r][to.c]||m.special==='ep')s+='x';s+=toAlg(to.r,to.c);if(m.special==='promo')s+='='+(pt||'Q');return s;}
+
+// ── Nulle : matériel insuffisant ──
+function insufficientMaterial(b){
+  const pieces=[];
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=b[r][c];if(p&&tp(p)!=='K')pieces.push(p);}
+  if(!pieces.length)return true; // Roi vs Roi
+  if(pieces.length===1){const t=tp(pieces[0]);if(t==='N'||t==='B')return true;} // Roi+cavalier ou Roi+fou vs Roi
+  if(pieces.length===2){
+    const types=pieces.map(p=>tp(p));
+    if(types[0]==='B'&&types[1]==='B'){ // Roi+fou vs Roi+fou : même couleur = nulle
+      let sq1=-1,sq2=-1;
+      for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=b[r][c];if(p&&tp(p)==='B'){if(sq1===-1)sq1=(r+c)%2;else sq2=(r+c)%2;}}
+      if(sq1===sq2)return true;
+    }
+  }
+  return false;
+}
+
+// FEN simplifié pour détecter les répétitions (sans compteurs)
+function fenForRepeat(b,cv,cr,ep){
+  return boardFEN(b,cv,cr,ep).split(' ').slice(0,4).join(' ');
+}
+
+function boardFEN(b,cv,cr,ep){
+  let f='';
+  for(let r=0;r<8;r++){let e=0;for(let c=0;c<8;c++){const p=b[r][c];if(!p){e++;}else{if(e){f+=e;e=0;}const ch=tp(p);f+=cl(p)===W?ch:ch.toLowerCase();}}if(e)f+=e;if(r<7)f+='/';}
+  f+=' '+(cv===W?'w':'b');
+  let cas='';if(cr.wK)cas+='K';if(cr.wQ)cas+='Q';if(cr.bK)cas+='k';if(cr.bQ)cas+='q';
+  f+=' '+(cas||'-')+' '+(ep?toAlg(ep.r,ep.c):'-')+' 0 1';
+  return f;
+}
+function uciToCoords(uci){return{from:{r:8-parseInt(uci[1]),c:uci.charCodeAt(0)-97},to:{r:8-parseInt(uci[3]),c:uci.charCodeAt(2)-97},promo:uci[4]?uci[4].toUpperCase():null};}
+
+// ═══════════════════════════════════════════════
+// ENGINE — 3 couches : Serveur local > WASM > Minimax
+// ═══════════════════════════════════════════════
+
+// __SERVER_MODE__ (remplacé par server.py si servi localement)
+const SERVER_MODE = false;
+const SERVER_URL  = 'http://localhost:8765';
+
+let localServerReady = false;
+let sf=null,sfReady=false,sfResolve=null,sfInfoLines=[];
+
+// ── Détection du serveur local ──
+async function probeLocalServer(){
+  const dot=document.getElementById('sf-dot'),lbl=document.getElementById('sf-label');
+  try{
+    const r=await Promise.race([
+      fetch(SERVER_URL+'/status'),
+      new Promise((_,rej)=>setTimeout(()=>rej('timeout'),1500))
+    ]);
+    const data=await r.json();
+    if(data.ready){
+      localServerReady=true;
+      dot.className='ready';
+      lbl.textContent='Stockfish natif ✓';
+      document.getElementById('btn-hint').disabled=false;
+      document.getElementById('engine-tag').textContent='Stockfish natif';
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+
+// ── Appel serveur local ──
+async function askLocalServer(fen,level){
+  const skill=level-1;
+  // Niveau 20 = profondeur maximale (depth 24)
+  const depth = level>=20 ? 24 : Math.min(20, Math.max(8, Math.round(6+level*0.8)));
+  try{
+    const r=await Promise.race([
+      fetch(SERVER_URL+'/analyse',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({fen,depth,skill,multipv:1})
+      }),
+      new Promise((_,rej)=>setTimeout(()=>rej('timeout'),20000))
+    ]);
+    const data=await r.json();
+    if(data.error||!data.lines)return null;
+    const pv1=data.lines['1']||data.lines[1];
+    if(!pv1&&!data.bestmove)return null;
+    const uci=pv1?.uci||data.bestmove;
+    const score_type=pv1?.score_type||'cp';
+    const score_val=pv1?.score||0;
+    const mate=score_type==='mate'?score_val:null;
+    const score=score_type==='cp'?score_val:(score_val>0?99999:-99999);
+    return{uci,score,mate};
+  }catch(e){localServerReady=false;return null;}
+}
+
+// ── WASM Stockfish (CDN) ──
+function initWasmStockfish(){
+  const dot=document.getElementById('sf-dot'),lbl=document.getElementById('sf-label');
+  const blob=new Blob([`self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js');`],{type:'application/javascript'});
+  try{
+    sf=new Worker(URL.createObjectURL(blob));
+    sf.onmessage=e=>{
+      const line=typeof e.data==='string'?e.data:'';
+      if(line.startsWith('info')&&line.includes('multipv')&&line.includes(' pv '))sfInfoLines.push(line);
+      if(line==='uciok')sf.postMessage('isready');
+      if(line==='readyok'){sfReady=true;dot.className='ready';lbl.textContent='Stockfish WASM prêt';document.getElementById('btn-hint').disabled=false;document.getElementById('engine-tag').textContent='Stockfish WASM';}
+      if(line.startsWith('bestmove')&&sfResolve){const res=sfResolve;sfResolve=null;res({bestLine:line,infoLines:[...sfInfoLines]});sfInfoLines=[];}
+    };
+    sf.onerror=()=>{dot.className='error';lbl.textContent='WASM indispo — Minimax';sfReady=false;document.getElementById('btn-hint').disabled=false;};
+    sf.postMessage('uci');
+  }catch(e){dot.className='error';lbl.textContent='Minimax actif';document.getElementById('btn-hint').disabled=false;}
+}
+
+function askWasm(fen,level,multiPV){
+  return new Promise(resolve=>{
+    if(!sf||!sfReady){resolve(null);return;}
+    sfInfoLines=[];
+    const depth=Math.max(4,Math.round(level*0.85));
+    sf.postMessage('ucinewgame');
+    // Niveau 20 = force maximale sans handicap
+    if(level>=20){sf.postMessage('setoption name Skill Level value 20');}
+    else{sf.postMessage(`setoption name Skill Level value ${level-1}`);}
+    sf.postMessage(`setoption name MultiPV value ${multiPV}`);
+    sf.postMessage(`position fen ${fen}`);
+    sfResolve=resolve;
+    sf.postMessage(`go depth ${depth}`);
+  });
+}
+
+function parseWasmLines(lines){
+  const byPV={};
+  for(const line of lines){
+    const pvN=line.match(/multipv (\d+)/),pvM=line.match(/ pv ([a-h][1-8][a-h][1-8][qrbn]?)/),scM=line.match(/score (cp|mate) (-?\d+)/);
+    if(!pvM)continue;
+    const pv=pvN?parseInt(pvN[1]):1;
+    let score=0,mate=null;
+    if(scM){if(scM[1]==='cp')score=parseInt(scM[2]);else{mate=parseInt(scM[2]);score=mate>0?99999:-99999;}}
+    byPV[pv]={uci:pvM[1],score,mate};
+  }
+  return byPV;
+}
+
+// ── Init : sonde le serveur local d'abord, puis WASM ──
+async function initStockfish(){
+  const dot=document.getElementById('sf-dot'),lbl=document.getElementById('sf-label');
+  dot.className='loading'; lbl.textContent='Détection moteur…';
+  const hasLocal=await probeLocalServer();
+  if(!hasLocal){
+    initWasmStockfish();
+  }
+}
+
+// ── Fonction centrale : getBestMove (sonde les 3 couches) ──
+function uciResultToMove(uci,score,mate){
+  const coords=uciToCoords(uci);
+  const legal=legalAt(board,coords.from.r,coords.from.c,enPassantTarget,castlingRights);
+  const match=legal.find(m=>m.r===coords.to.r&&m.c===coords.to.c);
+  const dispScore=turn===W?score:-score;
+  const dispMate=mate!==null?(turn===W?mate:-mate):null;
+  const notation=noteMove(board,coords.from,coords.to,match||{r:coords.to.r,c:coords.to.c,special:null},coords.promo);
+  return{uci,score:dispScore,mate:dispMate,notation,from:coords.from,to:coords.to,promo:coords.promo,match};
+}
+
+async function getBestMove(fen,level){
+  // 1. Serveur local (Stockfish natif)
+  if(localServerReady){
+    try{
+      const res=await askLocalServer(fen,level);
+      if(res&&res.uci){
+        document.getElementById('engine-tag').textContent=`Stockfish natif niv.${level}`;
+        return uciResultToMove(res.uci,res.score,res.mate);
+      }
+    }catch(e){}
+  }
+  // 2. WASM Stockfish
+  if(sfReady){
+    try{
+      const sfData=await Promise.race([askWasm(fen,level,1),new Promise(r=>setTimeout(()=>r(null),9000))]);
+      if(sfData){
+        const byPV=parseWasmLines(sfData.infoLines);
+        if(!byPV[1]&&sfData.bestLine.startsWith('bestmove')){const bm=sfData.bestLine.split(' ')[1];if(bm&&bm!=='(none)')byPV[1]={uci:bm,score:0,mate:null};}
+        if(byPV[1]){
+          document.getElementById('engine-tag').textContent=`Stockfish WASM niv.${level}`;
+          return uciResultToMove(byPV[1].uci,byPV[1].score,byPV[1].mate);
+        }
+      }
+    }catch(e){}
+  }
+  // 3. Minimax
+  document.getElementById('engine-tag').textContent='Minimax';
+  const mm=minimaxTop(board,turn,enPassantTarget,castlingRights,1);
+  if(!mm.length)return null;
+  const m=mm[0];
+  return{uci:null,score:m.score,mate:null,notation:noteMove(board,m.from,m.to,m.to,null),from:m.from,to:m.to,promo:null,match:m.to};
+}
+
+// ═══════════════════════════════════════════════
+// BOT MOVE
+// ═══════════════════════════════════════════════
+function scheduleBotMove(){
+  if(gameOver||botThinking)return;
+  botThinking=true;
+  document.getElementById('bot-thinking').classList.add('on');
+  const level=parseInt(document.getElementById('sf-level').value);
+  const fen=boardFEN(board,turn,castlingRights,enPassantTarget);
+  // Small delay so UI renders first
+  setTimeout(async()=>{
+    const best=await getBestMove(fen,level);
+    botThinking=false;
+    document.getElementById('bot-thinking').classList.remove('on');
+    if(!best||gameOver)return;
+    // Find the special field
+    const mv=best.match||{r:best.to.r,c:best.to.c,special:null};
+    // Highlight bot's move in orange briefly
+    botSq=[{r:best.from.r,c:best.from.c},{r:best.to.r,c:best.to.c}];
+    renderBoard();
+    setTimeout(()=>{
+      botSq=[];
+      execMove(best.from,mv,best.promo,true/*isBot*/);
+    },500);
+  },200);
+}
+
+// ═══════════════════════════════════════════════
+// FALLBACK MINIMAX
+// ═══════════════════════════════════════════════
+const PST={P:[[0,0,0,0,0,0,0,0],[50,50,50,50,50,50,50,50],[10,10,20,30,30,20,10,10],[5,5,10,25,25,10,5,5],[0,0,0,20,20,0,0,0],[5,-5,-10,0,0,-10,-5,5],[5,10,10,-20,-20,10,10,5],[0,0,0,0,0,0,0,0]],N:[[-50,-40,-30,-30,-30,-30,-40,-50],[-40,-20,0,0,0,0,-20,-40],[-30,0,10,15,15,10,0,-30],[-30,5,15,20,20,15,5,-30],[-30,0,15,20,20,15,0,-30],[-30,5,10,15,15,10,5,-30],[-40,-20,0,5,5,0,-20,-40],[-50,-40,-30,-30,-30,-30,-40,-50]],B:[[-20,-10,-10,-10,-10,-10,-10,-20],[-10,0,0,0,0,0,0,-10],[-10,0,5,10,10,5,0,-10],[-10,5,5,10,10,5,5,-10],[-10,0,10,10,10,10,0,-10],[-10,10,10,10,10,10,10,-10],[-10,5,0,0,0,0,5,-10],[-20,-10,-10,-10,-10,-10,-10,-20]],R:[[0,0,0,0,0,0,0,0],[5,10,10,10,10,10,10,5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[0,0,0,5,5,0,0,0]],Q:[[-20,-10,-10,-5,-5,-10,-10,-20],[-10,0,0,0,0,0,0,-10],[-10,0,5,5,5,5,0,-10],[-5,0,5,5,5,5,0,-5],[0,0,5,5,5,5,0,-5],[-10,5,5,5,5,5,0,-10],[-10,0,5,0,0,0,0,-10],[-20,-10,-10,-5,-5,-10,-10,-20]],K:[[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-20,-30,-30,-40,-40,-30,-30,-20],[-10,-20,-20,-20,-20,-20,-20,-10],[20,20,0,0,0,0,20,20],[20,30,10,0,0,10,30,20]]};
+function evalB(b){let s=0;for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=b[r][c];if(!p)continue;const cv=cl(p),t=tp(p);const pr=cv===W?r:7-r;s+=cv===W?(PVAL[t]+(PST[t]?PST[t][pr][c]:0)):-(PVAL[t]+(PST[t]?PST[t][pr][c]:0));}return s;}
+function minimax(b,depth,alpha,beta,maxing,ep,cr){if(depth===0)return{score:evalB(b)};const cv=maxing?W:B;const moves=allMoves(b,cv,ep,cr);if(!moves.length)return{score:maxing?-99999:99999};moves.sort((a,z)=>(b[z.to.r][z.to.c]?PVAL[tp(b[z.to.r][z.to.c])]||0:0)-(b[a.to.r][a.to.c]?PVAL[tp(b[a.to.r][a.to.c])]||0:0));let best=maxing?-Infinity:Infinity,bm=null;for(const m of moves){const nb=applyMv(b,m.from,m.to,m.to.special);let nep=null;if(m.to.special==='double'){const d=cv===W?1:-1;nep={r:m.to.r+d,c:m.to.c};}const res=minimax(nb,depth-1,alpha,beta,!maxing,nep,cr);if(maxing){if(res.score>best){best=res.score;bm=m;}alpha=Math.max(alpha,best);}else{if(res.score<best){best=res.score;bm=m;}beta=Math.min(beta,best);}if(beta<=alpha)break;}return{score:best,move:bm};}
+function minimaxTop(b,cv,ep,cr,n){const moves=allMoves(b,cv,ep,cr);if(!moves.length)return[];const maxing=cv===W;const scored=moves.map(m=>{const nb=applyMv(b,m.from,m.to,m.to.special);let nep=null;if(m.to.special==='double'){const d=cv===W?1:-1;nep={r:m.to.r+d,c:m.to.c};}const res=minimax(nb,3,-Infinity,Infinity,!maxing,nep,cr);return{...m,score:res.score};});scored.sort((a,z)=>maxing?z.score-a.score:a.score-z.score);return scored.slice(0,n);}
+
+// ═══════════════════════════════════════════════
+// HINT (2p mode only)
+// ═══════════════════════════════════════════════
+let hintBusy=false;
+async function requestHint(){
+  if(gameOver||hintBusy||gameMode==='bot')return;
+  hintBusy=true;
+  document.getElementById('btn-hint').disabled=true;
+  hintSq=[];
+  const panel=document.getElementById('hint-panel'),spinner=document.getElementById('hint-spinner');
+  const movesEl=document.getElementById('hint-moves'),explEl=document.getElementById('hint-explanation');
+  panel.classList.add('visible');spinner.classList.add('on');
+  movesEl.innerHTML='<div style="color:rgba(245,239,224,0.4);font-style:italic;font-size:0.85rem">Analyse en cours…</div>';
+  explEl.innerHTML='';
+  const fen=boardFEN(board,turn,castlingRights,enPassantTarget);
+  const level=parseInt(document.getElementById('sf-level').value);
+  const best=await getBestMove(fen,level);
+  const engineUsed=document.getElementById('engine-tag').textContent||'Moteur';
+  document.getElementById('engine-tag').textContent=engineUsed;
+  if(!best){movesEl.innerHTML='<div style="color:rgba(245,239,224,0.5)">Aucun coup disponible.</div>';spinner.classList.remove('on');hintBusy=false;document.getElementById('btn-hint').disabled=false;return;}
+  hintSq=[{r:best.from.r,c:best.from.c,cls:'hint-best'},{r:best.to.r,c:best.to.c,cls:'hint-best'}];
+  renderBoard();
+  const piece=PIECES[board[best.from.r][best.from.c]]||'';
+  const scoreStr=best.mate!==null?`Mat en ${Math.abs(best.mate)}`:(best.score>=0?'+':'')+((best.score/100).toFixed(2));
+  movesEl.innerHTML='';
+  const div=document.createElement('div');div.className='hint-row';
+  div.innerHTML=`<span class="hint-badge">Meilleur</span><span style="font-size:1.3rem">${piece}</span><span><strong>${best.notation}</strong> <span style="opacity:0.5;font-size:0.82rem">${toAlg(best.from.r,best.from.c)}→${toAlg(best.to.r,best.to.c)}</span></span><span class="hint-score">${scoreStr}</span>`;
+  movesEl.appendChild(div);
+  const scoreInfo=best.mate!==null?`Mat en ${Math.abs(best.mate)}`:`avantage ${(best.score/100).toFixed(2)} pions`;
+  const prompt=`Tu es un coach d'échecs expert. Position FEN : ${fen}\nLes ${turn===W?'blancs':'noirs'} jouent. Moteur: ${engineUsed}\nMeilleur coup : ${best.notation} (${scoreInfo})\nEn 2-3 phrases en français, explique pourquoi "${best.notation}" est le meilleur coup. Sois concis, pédagogique. Pas de markdown.`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:250,messages:[{role:'user',content:prompt}]})});
+    const data=await res.json();
+    explEl.textContent=data.content?.map(x=>x.text||'').join('')||'Coup recommandé mis en évidence sur l\'échiquier.';
+  }catch(e){explEl.textContent='Le coup recommandé est mis en évidence sur l\'échiquier.';}
+  spinner.classList.remove('on');hintBusy=false;document.getElementById('btn-hint').disabled=false;
+}
+function closeHint(){document.getElementById('hint-panel').classList.remove('visible');hintSq=[];renderBoard();}
+
+// ═══════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════
+function buildDOM(){
+  const wrap=document.getElementById('board-with-coords');wrap.innerHTML='';
+  const mkFile=()=>{const r=document.createElement('div');r.style.cssText='display:flex;padding-left:22px;';for(let c=0;c<8;c++){const d=document.createElement('div');d.className='coord coord-file';d.textContent=FILES[c];r.appendChild(d);}return r;};
+  wrap.appendChild(mkFile());
+  for(let r=0;r<8;r++){const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;';const rc=document.createElement('div');rc.className='coord coord-rank';rc.textContent=(8-r);row.appendChild(rc);const rb=document.createElement('div');rb.style.cssText='display:flex;';for(let c=0;c<8;c++){const sq=document.createElement('div');sq.className='sq '+((r+c)%2===0?'light':'dark');sq.dataset.r=r;sq.dataset.c=c;sq.onclick=()=>handleClick(r,c);rb.appendChild(sq);}row.appendChild(rb);wrap.appendChild(row);}
+  wrap.appendChild(mkFile());
+}
+function renderBoard(){
+  updateEvalBar();
+  if(!document.querySelector('.sq'))buildDOM();
+  document.querySelectorAll('.sq').forEach(sq=>{sq.classList.remove('selected','movable','capture-hint','last-move','king-check','hint-best','bot-move');sq.innerHTML='';});
+  if(lastMove){getSq(lastMove.from.r,lastMove.from.c).classList.add('last-move');getSq(lastMove.to.r,lastMove.to.c).classList.add('last-move');}
+  if(!gameOver&&inCheck(board,turn))for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(board[r][c]===turn+'K')getSq(r,c).classList.add('king-check');
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=board[r][c];if(!p)continue;const sq=getSq(r,c);const sp=document.createElement('span');sp.className='piece';sp.textContent=PIECES[p];sq.appendChild(sp);}
+  if(selected){getSq(selected.r,selected.c).classList.add('selected');legalMoves.forEach(m=>{const s=getSq(m.r,m.c);if(board[m.r][m.c])s.classList.add('capture-hint');else s.classList.add('movable');});}
+  hintSq.forEach(h=>getSq(h.r,h.c)&&getSq(h.r,h.c).classList.add(h.cls));
+  botSq.forEach(h=>getSq(h.r,h.c)&&getSq(h.r,h.c).classList.add('bot-move'));
+}
+function getSq(r,c){return document.querySelector(`.sq[data-r="${r}"][data-c="${c}"]`);}
+function renderMoves(){const el=document.getElementById('moves-list');el.innerHTML='';for(let i=0;i<moveHistory.length;i+=2){const d=document.createElement('div');d.className='move-row';d.innerHTML=`<span class="move-num">${Math.floor(i/2)+1}.</span><span class="move-w">${moveHistory[i]||''}</span><span class="move-b">${moveHistory[i+1]||''}</span>`;el.appendChild(d);}el.scrollTop=el.scrollHeight;}
+function renderCaptured(){document.getElementById('cap-white').innerHTML=capturedByWhite.map(p=>`<span class="cap-piece">${PIECES['b'+p]||PIECES['w'+p]}</span>`).join('');document.getElementById('cap-black').innerHTML=capturedByBlack.map(p=>`<span class="cap-piece">${PIECES['w'+p]||PIECES['b'+p]}</span>`).join('');}
+function setGameOver(msg){
+  gameOver=true;
+  const el=document.getElementById('status');
+  el.className='status-bar mate';
+  el.textContent=msg;
+  document.getElementById('turn-text').textContent=msg.includes('mat')?msg.split('—')[1]?.trim()||'Fin':'Nulle !';
+  updateEvalBar();
+}
+
+function updateStatus(){
+  const el=document.getElementById('status');
+  el.className='status-bar';
+  if(gameOver)return;
+
+  const ic=inCheck(board,turn);
+  const moves=allMoves(board,turn,enPassantTarget,castlingRights);
+
+  // ── Échec et mat / Pat ──
+  if(!moves.length){
+    if(ic){
+      const winner=turn===W?'Noirs':'Blancs';
+      setGameOver('♛ Échec et mat — '+winner+' gagnent !');
+    } else {
+      setGameOver('½ Pat — Nulle !');
+    }
+    return;
+  }
+
+  // ── Nulle par répétition ──
+  const fenKey=fenForRepeat(board,turn,castlingRights,enPassantTarget);
+  if((positionCount[fenKey]||0)>=3){
+    setGameOver('½ Nulle par répétition (3×) !');
+    return;
+  }
+
+  // ── Règle des 50 coups ──
+  if(halfMoveClock>=100){
+    setGameOver('½ Nulle — Règle des 50 coups !');
+    return;
+  }
+
+  // ── Matériel insuffisant ──
+  if(insufficientMaterial(board)){
+    setGameOver('½ Nulle — Matériel insuffisant !');
+    return;
+  }
+
+  // ── Partie en cours ──
+  if(ic){
+    el.textContent='⚠ Échec au roi '+(turn===W?'blanc':'noir')+' !';
+    el.classList.add('check');
+  } else {
+    if(gameMode==='bot'){
+      el.textContent=turn===playerColor?'Votre tour '+(playerColor===W?'♙':'♟'):'Stockfish joue…';
+    } else {
+      el.textContent=turn===W?'Tour des Blancs ♙':'Tour des Noirs ♟';
+    }
+  }
+  document.getElementById('turn-dot').className='turn-dot '+(turn===W?'white':'black');
+  document.getElementById('turn-text').textContent=turn===W?'Tour des Blancs':'Tour des Noirs';
+}
+
+// ═══════════════════════════════════════════════
+// INTERACTION
+// ═══════════════════════════════════════════════
+function handleClick(r,c){
+  if(gameOver)return;
+  // Block clicks when it's bot's turn
+  if(gameMode==='bot'&&turn!==playerColor)return;
+  if(botThinking)return;
+  if(hintSq.length){hintSq=[];renderBoard();}
+  const p=board[r][c];
+  if(!selected){if(!p||cl(p)!==turn)return;selected={r,c};legalMoves=legalAt(board,r,c,enPassantTarget,castlingRights);renderBoard();return;}
+  if(selected.r===r&&selected.c===c){selected=null;legalMoves=[];renderBoard();return;}
+  if(p&&cl(p)===turn){selected={r,c};legalMoves=legalAt(board,r,c,enPassantTarget,castlingRights);renderBoard();return;}
+  const mv=legalMoves.find(m=>m.r===r&&m.c===c);
+  if(!mv){selected=null;legalMoves=[];renderBoard();return;}
+  if(mv.special==='promo')showPromo(selected,mv);else execMove(selected,mv,null,false);
+}
+
+function showPromo(from,mv){
+  const cv=turn,pieces=['Q','R','B','N'],el=document.getElementById('promo-choices');el.innerHTML='';
+  pieces.forEach(t=>{const btn=document.createElement('button');btn.className='promo-btn';btn.textContent=PIECES[cv+t];btn.onclick=()=>{document.getElementById('promo-modal').classList.remove('open');execMove(from,mv,t,false);};el.appendChild(btn);});
+  document.getElementById('promo-modal').classList.add('open');
+}
+
+function execMove(from,mv,pt,isBot){
+  const p=board[from.r][from.c],cap=board[mv.r][mv.c];
+  boardHistory.push({board:board.map(r=>[...r]),turn,enPassantTarget,castlingRights:{...castlingRights},capturedByWhite:[...capturedByWhite],capturedByBlack:[...capturedByBlack],lastMove:lastMove?{...lastMove}:null,isFlipped,halfMoveClock,positionCount:{...positionCount}});
+  moveHistory.push(noteMove(board,from,mv,mv,pt));
+  if(cap){const t=tp(cap);turn===W?capturedByWhite.push(t):capturedByBlack.push(t);}
+  if(mv.special==='ep'){turn===W?capturedByWhite.push('P'):capturedByBlack.push('P');}
+  // Règle des 50 coups : reset si pion bougé ou pièce capturée
+  if(tp(p)==='P'||cap||mv.special==='ep') halfMoveClock=0; else halfMoveClock++;
+  board=applyMv(board,from,mv,mv.special,pt);
+  if(tp(p)==='K'){if(turn===W){castlingRights.wK=false;castlingRights.wQ=false;}else{castlingRights.bK=false;castlingRights.bQ=false;}}
+  if(tp(p)==='R'){if(from.r===7&&from.c===7)castlingRights.wK=false;if(from.r===7&&from.c===0)castlingRights.wQ=false;if(from.r===0&&from.c===7)castlingRights.bK=false;if(from.r===0&&from.c===0)castlingRights.bQ=false;}
+  enPassantTarget=null;
+  if(mv.special==='double'){const d=turn===W?1:-1;enPassantTarget={r:mv.r+d,c:mv.c};}
+  lastMove={from,to:mv};selected=null;legalMoves=[];turn=op(turn);
+  // Compter la position pour les répétitions
+  const fenKey=fenForRepeat(board,turn,castlingRights,enPassantTarget);
+  positionCount[fenKey]=(positionCount[fenKey]||0)+1;
+  hintSq=[];closeHint();
+  if(gameMode==='2p')flipBoard();
+  renderBoard();updateStatus();renderMoves();renderCaptured();
+  // After human move in bot mode, trigger bot
+  if(gameMode==='bot'&&!isBot&&!gameOver&&turn!==playerColor) scheduleBotMove();
+}
+
+function flipBoard(){if(!autoFlip)return;const w=document.getElementById('board-wrap');isFlipped=!isFlipped;w.style.transition='transform 0.65s cubic-bezier(0.4,0,0.2,1)';w.style.transform=isFlipped?'rotate(180deg)':'rotate(0deg)';if(isFlipped)w.classList.add('flipped');else w.classList.remove('flipped');}
+
+function undoMove(){
+  if(!boardHistory.length)return;
+  // In bot mode, undo 2 moves (player + bot) unless bot hasn't moved yet
+  const stepsBack=gameMode==='bot'&&boardHistory.length>=2&&turn===playerColor?2:1;
+  for(let i=0;i<stepsBack;i++){
+    if(!boardHistory.length)break;
+    const prev=boardHistory.pop();
+    board=prev.board;turn=prev.turn;enPassantTarget=prev.enPassantTarget;castlingRights=prev.castlingRights;capturedByWhite=prev.capturedByWhite;capturedByBlack=prev.capturedByBlack;lastMove=prev.lastMove;gameOver=false;moveHistory.pop();
+    halfMoveClock=prev.halfMoveClock||0;positionCount=prev.positionCount||{};
+    if(gameMode==='2p'){isFlipped=prev.isFlipped;const w=document.getElementById('board-wrap');w.style.transform=isFlipped?'rotate(180deg)':'rotate(0deg)';if(isFlipped)w.classList.add('flipped');else w.classList.remove('flipped');}
+  }
+  botThinking=false;document.getElementById('bot-thinking').classList.remove('on');
+  hintSq=[];botSq=[];closeHint();selected=null;legalMoves=[];renderBoard();updateStatus();renderMoves();renderCaptured();
+}
+
+// ── INIT ──
+buildDOM();
+newGame();
+initStockfish();
+// Activer la barre d'avantage par défaut
+document.getElementById('btn-eval').classList.add('active');
+</script>
+</body>
+</html>
