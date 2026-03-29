@@ -4,6 +4,8 @@ Un script qui analyse vos parties sur **chess.com** en temps réel grâce à Sto
 
 ![Demo](2026032918543-ezgif.com-video-to-gif-converter.gif)
 
+![Description](Capture d'écran 2026-03-29 211920.png)
+
 ---
 
 ## 📋 Ce dont vous avez besoin
