@@ -173,6 +173,17 @@ natal pour calculer les coups.
 SI vous augmentez le niveau de stockfish au dessus de 10, le temps imparti pour chaque coups qu'utilise le script et qui est de 12 secondes 
 augmentera. 
 
+Le niveau Stockfish influence directement le temps de calcul entre chaque coup. Voici quelques repères :
+
+Niveau 1 à 5 — calcul quasi instantané, idéal si vous avez peut de temps (blitz) mais moins bonne qualité de coup
+Niveau 6 à 10 — quelques secondes de calcul, bon compromis entre vitesse et qualité
+Niveau 11 à 15 — calcul plus long (5 à 10 secondes), recommandé des temps plus long
+Niveau 16 à 19 — calcul lent, réservé aux parties avec beaucoup de temps ou sans limite de temps
+Niveau 20 — profondeur maximale (40 demi-coups), peut prendre jusqu'à 30 secondes selon votre processeur, à utiliser uniquement contre les bots les plus forts sans limite de temps
+
+En mode auto-play, le script attend automatiquement la fin du calcul avant de jouer. Plus votre processeur est puissant, plus les niveaux élevés seront rapides.
+
+
 ![Screenshot](screenshot.png)
 
 
