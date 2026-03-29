@@ -6,12 +6,11 @@ Un script qui analyse tes parties sur **chess.com** en temps réel grâce à Sto
 
 ## 📋 Ce dont tu as besoin
 
-- **Un navigateur** : Brave, Chrome ou Firefox (gratuit)
-- **Tampermonkey** : une extension navigateur (gratuit)
-- **Python 3.7+** : un langage de programmation (gratuit)
-- **Stockfish** : le moteur d'échecs (gratuit)
-- **Ce script** : les fichiers de ce repo (gratuit)
-
+- **Un navigateur** : Brave, Chrome ou Firefox 
+- **Tampermonkey** : une extension navigateur 
+- **Python 3.7+** : un langage de programmation 
+- **Stockfish** : le moteur d'échecs 
+- **Ce script** : les fichiers de ce repo 
 ---
 
 ## 🪜 Installation étape par étape
