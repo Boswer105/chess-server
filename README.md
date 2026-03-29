@@ -137,7 +137,7 @@ Vérifiez que le fichier `.exe` de Stockfish est bien copié dans le dossier `ch
 ## ⚠️ Avertissement
 
 Ce script est conçu pour **s'entraîner contre des bots** sur chess.com. L'utiliser en partie classée contre de vrais joueurs est contraire aux conditions d'utilisation de chess.com.
-l'utilisation de ce script contre des joueurs peut entreêner le banissement de votre comte chess
+l'utilisation de ce script contre des joueurs peut entreîner le banissement de votre comte chess.
 
 ---
 
