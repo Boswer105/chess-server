@@ -1,4 +1,4 @@
-# ♟ Chess Coach — Stockfish pour Chess.com
+# ♟ Chess Script — Stockfish pour Chess.com
 
 Un script qui analyse vos parties sur **chess.com** en temps réel grâce à Stockfish, affiche les meilleurs coups avec des flèches, et peut jouer automatiquement à votre place (mode auto-play).
 
