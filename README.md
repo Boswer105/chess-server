@@ -138,8 +138,7 @@ Assurez-vous d'utiliser la version **v9.5** du script (le fichier `chess-coach-v
 **Stockfish introuvable au démarrage**
 
 Vérifiez que le fichier `.exe` de Stockfish est bien copié dans le dossier `chess-server`. Le nom du fichier doit commencer par `stockfish`.
-
-![Screenshot](screenshot.png%202)     
+   
 
 ---
 
