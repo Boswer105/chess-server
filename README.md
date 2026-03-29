@@ -170,6 +170,8 @@ Stockfish a une précision globale de 99.
 Si le serveur n'est pas connecté, ce sera stockfish WASM qui tournera en local sur votre PC qui calculera les coups. 
 Stockfish WASM a un niveau elo d'environ 2200 elo et une profondeur maximum de 17 demi-coups. Il est bien plus lent que stockfish 
 natal pour calculer les coups. 
+SI vous augmentez le niveau de stockfish au dessus de 20, le temps imparti pour chaque coups qu'utilise le script et qui est de 12 secondes 
+augmentera. 
 
 ![Screenshot](screenshot.png)
 
