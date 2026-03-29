@@ -36,8 +36,8 @@ _candidates = (
 )
 STOCKFISH_PATH = _candidates[0] if _candidates else "stockfish"
 
-# Profondeur max autorisée (évite de bloquer trop longtemps)
-MAX_DEPTH = 22
+# Profondeur max autorisée
+MAX_DEPTH = 40
 
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -133,7 +133,14 @@ class StockfishEngine:
             self._send(f"position fen {fen}")
             self._send(f"go depth {depth}")
 
-            raw_lines = self._read_until_bestmove(timeout=12)
+            # Plus la profondeur est élevée, plus on laisse du temps
+            if depth > 25:
+                timeout = 30
+            elif depth > 20:
+                timeout = 20
+            else:
+                timeout = 12
+            raw_lines = self._read_until_bestmove(timeout=timeout)
 
         # Parse info lines
         results_by_pv = {}
