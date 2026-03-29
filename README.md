@@ -118,8 +118,8 @@ Le serveur local fait le lien entre votre navigateur et Stockfish.
 
 ![Screenshot](screenshot.png%202)       
 
+![Screenshot](demo2.png)       
 
-![Screenshot](apercu.png)
 ---
 
 ## ❓ Problèmes fréquents
