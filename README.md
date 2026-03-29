@@ -161,3 +161,15 @@ l'utilisation de ce script contre des joueurs peut entreîner le banissement dé
 - `README.md` — Ce fichier d'instructions
 - `stockfish.exe` — À télécharger séparément sur stockfishchess.org (trop lourd pour GitHub)
 
+---
+
+## Niveau du script
+
+Lorsque le serveur est connecté, ce script atteint un niveau d'environ 3600 elo et une profondeur maximum de 40, soit 20 coups complets et 40 demi-coups. 
+La profondeur de stockfish dépendra principalement de la puissance de votre processeur. 
+Stockfish à une précision globale de 99. 
+
+![Screenshot](screenshot.png)
+
+
+
