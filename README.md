@@ -32,7 +32,7 @@ Tampermonkey est une extension qui permet d'exécuter des scripts dans votre nav
  
    Il se peut que Tempermonkey ne s'active pas immédiatement, si c'est le cas cliquez sur le petit
    bandeau bleu qui s'affichera en haut de la page "tableau de bord" de Tempermonkey et suivez les
-   instructions pour l'activer.
+   instructions qui s'afficheront pour l'activer.
 
 ---
 
