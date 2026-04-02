@@ -28,7 +28,8 @@ Tampermonkey est une extension qui permet d'exécuter des scripts dans votre nav
    - **Chrome / Brave** → [chrome.google.com/webstore](https://chrome.google.com/webstore) → recherchez "Tampermonkey"
    - **Firefox** → [addons.mozilla.org](https://addons.mozilla.org) → recherchez "Tampermonkey"
 3. Cliquez **"Ajouter"** ou **"Installer"**
-4. Une icône Tampermonkey apparaît en haut à droite de votre navigateur ✅
+4. allez dans vos extensions navigateur et épinglez Tempermonkey
+5. Une icône Tampermonkey apparaît en haut à droite de votre navigateur ✅
  
    Il se peut que Tempermonkey ne s'active pas immédiatement, si c'est le cas cliquez sur le petit
    bandeau bleu qui s'affichera en haut de la page "tableau de bord" de Tempermonkey et suivez les
